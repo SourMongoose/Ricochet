@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
     private long frameCount = 0;
 
     private String menu = "start";
+    private float margin;
 
     //frame data
     private static final int FRAMES_PER_SECOND = 60;
@@ -49,7 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
     private float downX, downY;
 
-    private Paint title;
+    private Paint wall, ball, spaced;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,10 +81,25 @@ public class MainActivity extends AppCompatActivity {
         //initialize fonts
         trebuchetms = Typeface.createFromAsset(getAssets(), "fonts/TrebuchetMS.ttf");
 
-        canvas.drawColor(Color.BLACK);
+        //background
+        canvas.drawColor(Color.rgb(141,188,214));
 
         //pre-defined paints
-        title = newPaint(Color.WHITE);
+        wall = newPaint(Color.WHITE);
+        wall.setStyle(Paint.Style.STROKE);
+        wall.setStrokeWidth(c400(3));
+
+        ball = newPaint(Color.WHITE);
+        ball.setStyle(Paint.Style.FILL);
+
+        spaced = newPaint(Color.WHITE);
+        spaced.setTextAlign(Paint.Align.CENTER);
+
+        //define margin
+        margin = (h() - w()) / 2;
+
+        canvas.save();
+        canvas.translate(0,margin);
 
         //title screen
         drawTitleMenu();
@@ -175,22 +191,41 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void spacedText(String s, double x, double y, double size) {
-        Paint p = newPaint(Color.argb(0,0,0,50));
-        p.setTextAlign(Paint.Align.CENTER);
-        p.setTextSize((float)size);
+        spaced.setColor(Color.argb(0,0,0,50));
+        spaced.setTextSize((float)size);
 
         String o = new String();
         for (int i = 0; i < s.length(); i++) {
             o += s.charAt(i);
+            o += " ";
         }
         o = o.substring(0,o.length()-1);
 
-        canvas.drawText(o, (float)(x+size/10), (float)(y+size/10), p);
-        p.setColor(Color.WHITE);
-        canvas.drawText(o, (float)x, (float)y, p);
+        y -= (spaced.ascent() + spaced.descent())/2;
+
+        canvas.drawText(o, (float)(x+size/10), (float)(y+size/10), spaced);
+        spaced.setColor(Color.WHITE);
+        canvas.drawText(o, (float)x, (float)y, spaced);
     }
 
     private void drawTitleMenu() {
         spacedText("ricochet", c400(200), c400(100), c400(50));
+
+        //"wall"
+        wall.setAlpha(200);
+        canvas.drawLine(c400(100),c400(150),c400(300),c400(150),wall);
+        //left streak
+        for (int i = 0; i < 10; i++) {
+            wall.setAlpha(i*25);
+            canvas.drawPoint(c400(100+i*10),c400(197-i*22/5),wall);
+        }
+        //right streak
+        for (int i = 0; i < 5; i++) {
+            canvas.drawPoint(c400(200+i*10),c400(153+i*22/5),wall);
+        }
+        //ball
+        canvas.drawCircle(c400(250),c400(175),c400(5),ball);
+
+        spacedText("start",c400(200),c400(300),c400(35));
     }
 }
