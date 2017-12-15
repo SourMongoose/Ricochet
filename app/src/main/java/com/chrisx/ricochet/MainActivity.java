@@ -43,14 +43,21 @@ public class MainActivity extends AppCompatActivity {
     private String menu = "start";
     private float margin;
 
+    private Ball ball;
+    private Dot dot;
+    private boolean wentOffScreen;
+    private int score;
+
     //frame data
     private static final int FRAMES_PER_SECOND = 60;
     private long nanosecondsPerFrame;
     private long millisecondsPerFrame;
 
-    private float downX, downY;
+    private float lastX, lastY;
 
-    private Paint wall, ball, spaced;
+    private final int bg = Color.rgb(161,214,226);
+
+    private Paint wall, white, spaced, arrow;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +82,13 @@ public class MainActivity extends AppCompatActivity {
         sharedPref = this.getPreferences(Context.MODE_PRIVATE);
         editor = sharedPref.edit();
 
+        //initialize objects
+        ball = new Ball(w(),h());
+        dot = new Dot(w(),h());
+        dot.changeLocation(ball);
+
+        lastX = lastY = 0;
+
         nanosecondsPerFrame = (long)1e9 / FRAMES_PER_SECOND;
         millisecondsPerFrame = (long)1e3 / FRAMES_PER_SECOND;
 
@@ -82,15 +96,18 @@ public class MainActivity extends AppCompatActivity {
         trebuchetms = Typeface.createFromAsset(getAssets(), "fonts/TrebuchetMS.ttf");
 
         //background
-        canvas.drawColor(Color.rgb(141,188,214));
+        canvas.drawColor(bg);
 
         //pre-defined paints
         wall = newPaint(Color.WHITE);
         wall.setStyle(Paint.Style.STROKE);
         wall.setStrokeWidth(c400(3));
 
-        ball = newPaint(Color.WHITE);
-        ball.setStyle(Paint.Style.FILL);
+        white = newPaint(Color.WHITE);
+        white.setStyle(Paint.Style.FILL);
+
+        arrow = new Paint(wall);
+        arrow.setStrokeWidth(c400(2));
 
         spaced = newPaint(Color.WHITE);
         spaced.setTextAlign(Paint.Align.CENTER);
@@ -98,11 +115,11 @@ public class MainActivity extends AppCompatActivity {
         //define margin
         margin = (h() - w()) / 2;
 
+        //title screen
         canvas.save();
         canvas.translate(0,margin);
-
-        //title screen
         drawTitleMenu();
+        canvas.restore();
 
         final Handler handler = new Handler();
         new Thread(new Runnable() {
@@ -115,10 +132,66 @@ public class MainActivity extends AppCompatActivity {
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
+                            if (!paused) {
+                                if (menu.equals("started")) {
+                                    canvas.drawColor(bg);
 
+                                    ball.draw(canvas);
+                                    dot.draw(canvas);
 
-                            //update canvas
-                            ll.invalidate();
+                                    //direction arrow
+                                    if (!ball.moving) drawArrow();
+
+                                    //moving the ball
+                                    if (ball.moving) {
+                                        ball.move();
+                                        double dist = Math.sqrt((ball.x-dot.x)*(ball.x-dot.x)
+                                                +(ball.y-dot.y)*(ball.y-dot.y));
+
+                                        if (ball.bounced) {
+                                            //leaves screen
+                                            if (ball.x < -ball.size || ball.x > w()+ball.size
+                                                    || ball.y < -ball.size || ball.y > h()+ball.size) {
+                                                menu = "gameover";
+                                                wentOffScreen = true;
+                                            }
+                                            //hits dot
+                                            if (dist < (ball.size+dot.size)/2) {
+                                                score++;
+
+                                                ball.moving = false;
+                                                ball.bounced = false;
+
+                                                dot.changeLocation(ball);
+
+                                                if (dot.size > c400(10)) dot.size -= c400(1);
+                                            }
+                                        } else {
+                                            //bounce off walls
+                                            if (ball.x < ball.size/2 || ball.x > w()-ball.size/2) {
+                                                ball.bounced = true;
+                                                ball.angle = Math.PI - ball.angle;
+                                            } else if (ball.y < ball.size/2 || ball.y > h()-ball.size/2) {
+                                                ball.bounced = true;
+                                                ball.angle *= -1;
+                                            }
+                                            //hits green dot prematurely
+                                            if (dist < (ball.size+dot.size)/2) {
+                                                menu = "gameover";
+                                                wentOffScreen = false;
+                                            }
+                                        }
+                                    }
+
+                                    //score
+                                    spacedText(score+"",c400(200),c400(20),c400(25));
+                                } else if (menu.equals("gameover")) {
+                                    canvas.drawColor(bg);
+                                }
+
+                                //update canvas
+                                ll.invalidate();
+                            }
                         }
                     });
 
@@ -154,6 +227,22 @@ public class MainActivity extends AppCompatActivity {
         float X = event.getX();
         float Y = event.getY();
         int action = event.getAction();
+
+        if (menu.equals("start")) {
+            if (action == MotionEvent.ACTION_UP) {
+                menu = "started";
+            }
+        } else if (menu.equals("started")) {
+            if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
+                lastX = X;
+                lastY = Y;
+            } else if (action == MotionEvent.ACTION_UP) {
+                if (!ball.moving) {
+                    ball.angle = Math.atan2(Y-ball.y,X-ball.x);
+                    ball.moving = true;
+                }
+            }
+        }
 
         return true;
     }
@@ -191,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void spacedText(String s, double x, double y, double size) {
-        spaced.setColor(Color.argb(0,0,0,50));
+        spaced.setColor(Color.argb(50,0,0,0));
         spaced.setTextSize((float)size);
 
         String o = new String();
@@ -209,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void drawTitleMenu() {
-        spacedText("ricochet", c400(200), c400(100), c400(50));
+        spacedText("ricochet", c400(200), c400(98), c400(55));
 
         //"wall"
         wall.setAlpha(200);
@@ -224,8 +313,19 @@ public class MainActivity extends AppCompatActivity {
             canvas.drawPoint(c400(200+i*10),c400(153+i*22/5),wall);
         }
         //ball
-        canvas.drawCircle(c400(250),c400(175),c400(5),ball);
+        canvas.drawCircle(c400(250),c400(175),c400(5),white);
 
-        spacedText("start",c400(200),c400(300),c400(35));
+        spacedText("tap to",c400(200),c400(283),c400(33));
+        spacedText("start",c400(200),c400(317),c400(33));
+    }
+
+    private void drawArrow() {
+        double angle = Math.atan2(lastY-ball.y,lastX-ball.x);
+        canvas.drawLine((float)(ball.x+c400(15)*Math.cos(angle)),(float)(ball.y+c400(15)*Math.sin(angle)),
+                (float)(ball.x+c400(30)*Math.cos(angle)),(float)(ball.y+c400(30)*Math.sin(angle)),arrow);
+        canvas.drawLine((float)(ball.x+c400(30)*Math.cos(angle)),(float)(ball.y+c400(30)*Math.sin(angle)),
+                (float)(ball.x+c400(25)*Math.cos(angle-toRad(10))),(float)(ball.y+c400(25)*Math.sin(angle-toRad(10))),arrow);
+        canvas.drawLine((float)(ball.x+c400(30)*Math.cos(angle)),(float)(ball.y+c400(30)*Math.sin(angle)),
+                (float)(ball.x+c400(25)*Math.cos(angle+toRad(10))),(float)(ball.y+c400(25)*Math.sin(angle+toRad(10))),arrow);
     }
 }
