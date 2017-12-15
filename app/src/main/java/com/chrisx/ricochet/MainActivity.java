@@ -243,7 +243,7 @@ public class MainActivity extends AppCompatActivity {
                 lastY = Y;
             } else if (action == MotionEvent.ACTION_UP) {
                 if (!ball.moving) {
-                    ball.angle = Math.atan2(Y-ball.y,X-ball.x);
+                    ball.angle = Math.atan2(ball.y-Y,ball.x-X);
                     ball.moving = true;
                 }
             }
@@ -344,7 +344,7 @@ public class MainActivity extends AppCompatActivity {
             spacedText("you missed",c400(200),c400(190),c400(20));
             spacedText("your ricochet!",c400(200),c400(210),c400(20));
         } else {
-            spacedText("you hit the green",c400(200),c400(210),c400(20));
+            spacedText("you hit the blue",c400(200),c400(190),c400(20));
             spacedText("dot too early!",c400(200),c400(210),c400(20));
         }
 
@@ -354,7 +354,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void drawArrow() {
-        double angle = Math.atan2(lastY-ball.y,lastX-ball.x);
+        double angle = Math.atan2(ball.y-lastY,ball.x-lastX);
         canvas.drawLine((float)(ball.x+c400(15)*Math.cos(angle)),(float)(ball.y+c400(15)*Math.sin(angle)),
                 (float)(ball.x+c400(30)*Math.cos(angle)),(float)(ball.y+c400(30)*Math.sin(angle)),arrow);
         canvas.drawLine((float)(ball.x+c400(30)*Math.cos(angle)),(float)(ball.y+c400(30)*Math.sin(angle)),
