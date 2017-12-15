@@ -187,6 +187,11 @@ public class MainActivity extends AppCompatActivity {
                                     spacedText(score+"",c400(200),c400(20),c400(25));
                                 } else if (menu.equals("gameover")) {
                                     canvas.drawColor(bg);
+                                    canvas.save();
+                                    canvas.translate(0,margin);
+                                    drawGameOverScreen();
+                                    canvas.restore();
+                                    menu = "limbo";
                                 }
 
                                 //update canvas
@@ -241,6 +246,18 @@ public class MainActivity extends AppCompatActivity {
                     ball.angle = Math.atan2(Y-ball.y,X-ball.x);
                     ball.moving = true;
                 }
+            }
+        } else if (menu.equals("limbo")) {
+            if (action == MotionEvent.ACTION_UP) {
+                menu = "started";
+                score = 0;
+
+                ball.x = w()/2;
+                ball.y = h()/2;
+                ball.moving = ball.bounced = false;
+
+                dot.size = w()/10;
+                dot.changeLocation(ball);
             }
         }
 
@@ -317,6 +334,23 @@ public class MainActivity extends AppCompatActivity {
 
         spacedText("tap to",c400(200),c400(283),c400(33));
         spacedText("start",c400(200),c400(317),c400(33));
+    }
+
+    private void drawGameOverScreen() {
+        spacedText("game",c400(200),c400(54),c400(70));
+        spacedText("over",c400(200),c400(115),c400(70));
+
+        if (wentOffScreen) {
+            spacedText("you missed",c400(200),c400(190),c400(20));
+            spacedText("your ricochet!",c400(200),c400(210),c400(20));
+        } else {
+            spacedText("you hit the green",c400(200),c400(210),c400(20));
+            spacedText("dot too early!",c400(200),c400(210),c400(20));
+        }
+
+        spacedText("you scored: "+score,c400(200),c400(257),c400(25));
+
+        spacedText("play again?",c400(200),c400(330),c400(35));
     }
 
     private void drawArrow() {
