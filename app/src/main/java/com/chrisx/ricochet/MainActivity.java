@@ -53,11 +53,12 @@ public class MainActivity extends AppCompatActivity {
     private long nanosecondsPerFrame;
     private long millisecondsPerFrame;
 
+    private float downX, downY; //stores initial touch
     private float lastX, lastY;
 
     private final int bg = Color.rgb(161,214,226);
 
-    private Paint wall, white, spaced, arrow;
+    private Paint wall, white, spaced, arrow, margins;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -112,6 +113,9 @@ public class MainActivity extends AppCompatActivity {
         spaced = newPaint(Color.WHITE);
         spaced.setTextAlign(Paint.Align.CENTER);
 
+        margins = newPaint(Color.rgb(93,181,199));
+        margins.setStyle(Paint.Style.FILL);
+
         //define margin
         margin = (h() - w()) / 2;
 
@@ -150,8 +154,7 @@ public class MainActivity extends AppCompatActivity {
 
                                         if (ball.bounced) {
                                             //leaves screen
-                                            if (ball.x < -ball.size || ball.x > w()+ball.size
-                                                    || ball.y < -ball.size || ball.y > h()+ball.size) {
+                                            if (ball.offScreen()) {
                                                 menu = "gameover";
                                                 wentOffScreen = true;
                                             }
@@ -164,14 +167,14 @@ public class MainActivity extends AppCompatActivity {
 
                                                 dot.changeLocation(ball);
 
-                                                if (dot.size > c400(10)) dot.size -= c400(1);
+                                                if (dot.size > c400(10)) dot.size -= c400(5f/3);
                                             }
                                         } else {
                                             //bounce off walls
-                                            if (ball.x < ball.size/2 || ball.x > w()-ball.size/2) {
+                                            if (ball.touchingLRWalls()) {
                                                 ball.bounced = true;
                                                 ball.angle = Math.PI - ball.angle;
-                                            } else if (ball.y < ball.size/2 || ball.y > h()-ball.size/2) {
+                                            } else if (ball.touchingUDWalls()) {
                                                 ball.bounced = true;
                                                 ball.angle *= -1;
                                             }
@@ -183,9 +186,14 @@ public class MainActivity extends AppCompatActivity {
                                         }
                                     }
 
-                                    //score
-                                    spacedText(score+"",c400(200),c400(20),c400(25));
+                                    //margins/scores
+                                    drawScores();
                                 } else if (menu.equals("gameover")) {
+                                    if (score > getHighScore()) {
+                                        editor.putInt("high_score", score);
+                                        editor.apply();
+                                    }
+
                                     canvas.drawColor(bg);
                                     canvas.save();
                                     canvas.translate(0,margin);
@@ -223,7 +231,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-
     }
 
     @Override
@@ -232,6 +239,11 @@ public class MainActivity extends AppCompatActivity {
         float X = event.getX();
         float Y = event.getY();
         int action = event.getAction();
+
+        if (action == MotionEvent.ACTION_DOWN) {
+            downX = X;
+            downY = Y;
+        }
 
         if (menu.equals("start")) {
             if (action == MotionEvent.ACTION_UP) {
@@ -252,11 +264,9 @@ public class MainActivity extends AppCompatActivity {
                 menu = "started";
                 score = 0;
 
-                ball.x = w()/2;
-                ball.y = h()/2;
-                ball.moving = ball.bounced = false;
+                ball.reset();
 
-                dot.size = w()/10;
+                dot.reset();
                 dot.changeLocation(ball);
             }
         }
@@ -313,6 +323,11 @@ public class MainActivity extends AppCompatActivity {
         spaced.setColor(Color.WHITE);
         canvas.drawText(o, (float)x, (float)y, spaced);
     }
+    private void spacedText(String s, double x, double y, double size, Paint.Align align) {
+        spaced.setTextAlign(align);
+        spacedText(s, x, y, size);
+        spaced.setTextAlign(Paint.Align.CENTER);
+    }
 
     private void drawTitleMenu() {
         spacedText("ricochet", c400(200), c400(98), c400(55));
@@ -361,5 +376,18 @@ public class MainActivity extends AppCompatActivity {
                 (float)(ball.x+c400(25)*Math.cos(angle-toRad(10))),(float)(ball.y+c400(25)*Math.sin(angle-toRad(10))),arrow);
         canvas.drawLine((float)(ball.x+c400(30)*Math.cos(angle)),(float)(ball.y+c400(30)*Math.sin(angle)),
                 (float)(ball.x+c400(25)*Math.cos(angle+toRad(10))),(float)(ball.y+c400(25)*Math.sin(angle+toRad(10))),arrow);
+    }
+
+    private void drawScores() {
+        //upper and lower margins
+        canvas.drawRect(-1,-1,w()+1,margin,margins);
+        canvas.drawRect(-1,h()-margin,w()+1,h()+1,margins);
+
+        //current score
+        spacedText("score",c400(15),c400(24),c400(20),Paint.Align.LEFT);
+        spacedText(score+"",c400(15),c400(55),c400(30),Paint.Align.LEFT);
+        //high score
+        spacedText("high",w()-c400(15),c400(24),c400(20),Paint.Align.RIGHT);
+        spacedText(getHighScore()+"",w()-c400(15),c400(55),c400(30),Paint.Align.RIGHT);
     }
 }
