@@ -43,6 +43,9 @@ public class MainActivity extends AppCompatActivity {
     private String menu = "start";
     private float margin;
 
+    private int transition = 0;
+    private final int TRANSITION_MAX = 40;
+
     private Ball ball;
     private Dot dot;
     private boolean wentOffScreen;
@@ -137,69 +140,86 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             if (!paused) {
-                                if (menu.equals("started")) {
-                                    canvas.drawColor(bg);
+                                if (transition < TRANSITION_MAX / 2) {
+                                    if (menu.equals("started")) {
+                                        canvas.drawColor(bg);
 
-                                    ball.draw(canvas);
-                                    dot.draw(canvas);
+                                        ball.draw(canvas);
+                                        dot.draw(canvas);
 
-                                    //direction arrow
-                                    if (!ball.moving) drawArrow();
+                                        //direction arrow
+                                        if (!ball.moving) drawArrow();
 
-                                    //moving the ball
-                                    if (ball.moving) {
-                                        ball.move();
-                                        double dist = Math.sqrt((ball.x-dot.x)*(ball.x-dot.x)
-                                                +(ball.y-dot.y)*(ball.y-dot.y));
+                                        //moving the ball
+                                        if (ball.moving) {
+                                            ball.move();
+                                            double dist = Math.sqrt((ball.x - dot.x) * (ball.x - dot.x)
+                                                    + (ball.y - dot.y) * (ball.y - dot.y));
 
-                                        if (ball.bounced) {
-                                            //leaves screen
-                                            if (ball.offScreen()) {
-                                                menu = "gameover";
-                                                wentOffScreen = true;
-                                            }
-                                            //hits dot
-                                            if (dist < (ball.size+dot.size)/2) {
-                                                score++;
+                                            if (ball.bounced) {
+                                                //leaves screen
+                                                if (ball.offScreen()) {
+                                                    menu = "gameover";
+                                                    wentOffScreen = true;
+                                                    transition = TRANSITION_MAX;
+                                                }
+                                                //hits dot
+                                                if (dist < (ball.size + dot.size) / 2) {
+                                                    score++;
 
-                                                ball.moving = false;
-                                                ball.bounced = false;
+                                                    ball.moving = false;
+                                                    ball.bounced = false;
 
-                                                dot.changeLocation(ball);
+                                                    dot.changeLocation(ball);
 
-                                                if (dot.size > c400(10)) dot.size -= c400(5f/3);
-                                            }
-                                        } else {
-                                            //bounce off walls
-                                            if (ball.touchingLRWalls()) {
-                                                ball.bounced = true;
-                                                ball.angle = Math.PI - ball.angle;
-                                            } else if (ball.touchingUDWalls()) {
-                                                ball.bounced = true;
-                                                ball.angle *= -1;
-                                            }
-                                            //hits green dot prematurely
-                                            if (dist < (ball.size+dot.size)/2) {
-                                                menu = "gameover";
-                                                wentOffScreen = false;
+                                                    if (dot.size > c400(10))
+                                                        dot.size -= c400(5f / 3);
+                                                }
+                                            } else {
+                                                //bounce off walls
+                                                if (ball.touchingLRWalls()) {
+                                                    ball.bounced = true;
+                                                    ball.angle = Math.PI - ball.angle;
+                                                } else if (ball.touchingUDWalls()) {
+                                                    ball.bounced = true;
+                                                    ball.angle *= -1;
+                                                }
+                                                //hits green dot prematurely
+                                                if (dist < (ball.size + dot.size) / 2) {
+                                                    menu = "gameover";
+                                                    wentOffScreen = false;
+                                                    transition = TRANSITION_MAX;
+                                                }
                                             }
                                         }
-                                    }
 
-                                    //margins/scores
-                                    drawScores();
-                                } else if (menu.equals("gameover")) {
-                                    if (score > getHighScore()) {
-                                        editor.putInt("high_score", score);
-                                        editor.apply();
-                                    }
+                                        //margins/scores
+                                        drawScores();
+                                    } else if (menu.equals("gameover")) {
+                                        if (score > getHighScore()) {
+                                            editor.putInt("high_score", score);
+                                            editor.apply();
+                                        }
 
-                                    canvas.drawColor(bg);
-                                    canvas.save();
-                                    canvas.translate(0,margin);
-                                    drawGameOverScreen();
-                                    canvas.restore();
-                                    menu = "limbo";
+                                        canvas.drawColor(bg);
+                                        canvas.save();
+                                        canvas.translate(0, margin);
+                                        drawGameOverScreen();
+                                        canvas.restore();
+
+                                        if (transition == 0) menu = "limbo";
+                                    }
+                                }
+
+                                if (transition > 0) {
+                                    int t = TRANSITION_MAX / 2, alpha;
+                                    if (transition > t) {
+                                        alpha = 255 - 255*(transition-t)/t;
+                                    } else {
+                                        alpha = 255 - 255*(t-transition)/t;
+                                    }
+                                    canvas.drawColor(Color.argb(alpha,
+                                            Color.red(bg), Color.green(bg), Color.blue(bg)));
                                 }
 
                                 //update canvas
@@ -208,6 +228,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     });
 
+                    if (transition > 0) transition--;
                     frameCount++;
 
                     //wait until frame is done
@@ -248,6 +269,7 @@ public class MainActivity extends AppCompatActivity {
         if (menu.equals("start")) {
             if (action == MotionEvent.ACTION_UP) {
                 menu = "started";
+                transition = TRANSITION_MAX;
             }
         } else if (menu.equals("started")) {
             if (action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_MOVE) {
@@ -262,6 +284,8 @@ public class MainActivity extends AppCompatActivity {
         } else if (menu.equals("limbo")) {
             if (action == MotionEvent.ACTION_UP) {
                 menu = "started";
+                transition = TRANSITION_MAX;
+
                 score = 0;
 
                 ball.reset();
