@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final int bg = Color.rgb(161,214,226);
 
-    private Paint wall, white, spaced, arrow, margins;
+    private Paint wall, white, spaced, arrow, margins, qMark;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,6 +118,10 @@ public class MainActivity extends AppCompatActivity {
 
         margins = newPaint(Color.rgb(93,181,199));
         margins.setStyle(Paint.Style.FILL);
+
+        qMark = newPaint(Color.rgb(100,100,100));
+        qMark.setTextSize(c400(30));
+        qMark.setTextAlign(Paint.Align.CENTER);
 
         //define margin
         margin = (h() - w()) / 2;
@@ -193,8 +197,10 @@ public class MainActivity extends AppCompatActivity {
                                             }
                                         }
 
-                                        //margins/scores
-                                        drawScores();
+                                        //margins and everything in them
+                                        drawMargins();
+                                    } else if (menu.equals("help")) {
+                                        drawHelp();
                                     } else if (menu.equals("gameover")) {
                                         if (score > getHighScore()) {
                                             editor.putInt("high_score", score);
@@ -277,8 +283,22 @@ public class MainActivity extends AppCompatActivity {
                 lastY = Y;
             } else if (action == MotionEvent.ACTION_UP) {
                 if (!ball.moving) {
-                    ball.angle = Math.atan2(ball.y-Y,ball.x-X);
-                    ball.moving = true;
+                    if (X > w()-c400(70) && Y > h()-c400(70)
+                            && downX > w()-c400(70) && downY > h()-c400(70)) {
+                        menu = "help";
+                        transition = TRANSITION_MAX;
+                    } else {
+                        ball.angle = Math.atan2(ball.y - Y, ball.x - X);
+                        ball.moving = true;
+                    }
+                }
+            }
+        } else if (menu.equals("help")) {
+            if (action == MotionEvent.ACTION_UP) {
+                if (X > w() - c400(70) && Y > h() - c400(70)
+                        && downX > w() - c400(70) && downY > h() - c400(70)) {
+                    menu = "started";
+                    transition = TRANSITION_MAX;
                 }
             }
         } else if (menu.equals("limbo")) {
@@ -331,6 +351,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void spacedText(String s, double x, double y, double size) {
+        if (s.length() < 1) return;
+
         spaced.setColor(Color.argb(50,0,0,0));
         spaced.setTextSize((float)size);
 
@@ -402,7 +424,7 @@ public class MainActivity extends AppCompatActivity {
                 (float)(ball.x+c400(25)*Math.cos(angle+toRad(10))),(float)(ball.y+c400(25)*Math.sin(angle+toRad(10))),arrow);
     }
 
-    private void drawScores() {
+    private void drawMargins() {
         //upper and lower margins
         canvas.drawRect(-1,-1,w()+1,margin,margins);
         canvas.drawRect(-1,h()-margin,w()+1,h()+1,margins);
@@ -413,5 +435,40 @@ public class MainActivity extends AppCompatActivity {
         //high score
         spacedText("high",w()-c400(15),c400(24),c400(20),Paint.Align.RIGHT);
         spacedText(getHighScore()+"",w()-c400(15),c400(55),c400(30),Paint.Align.RIGHT);
+
+        //help icon
+        drawHelpIcon();
+    }
+
+    private void drawHelpIcon() {
+        canvas.drawCircle(w()-c400(35),h()-c400(35),c400(20),white);
+        canvas.drawText(menu.equals("started") ? "?" : "×",
+                w()-c400(35),h()-c400(35)-(qMark.ascent()+qMark.descent())/2,qMark);
+    }
+
+    private void drawHelp() {
+        canvas.drawColor(bg);
+
+        String[] instructions = {
+                "tap and drag to",
+                "aim; release to",
+                "shoot the ball",
+                "",
+                "bounce on a wall",
+                "exactly once",
+                "",
+                "hit the blue dot",
+                "after bouncing"
+        };
+
+        canvas.save();
+        canvas.translate(0,margin);
+        spacedText("instructions",c400(200),c400(50),c400(40));
+        for (int i = 0; i < instructions.length; i++) {
+            spacedText(instructions[i],c400(200),c400(120+i*77f/3),c400(22));
+        }
+        canvas.restore();
+
+        drawHelpIcon();
     }
 }
