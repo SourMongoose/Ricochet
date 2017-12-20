@@ -442,7 +442,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void drawHelpIcon() {
         canvas.drawCircle(w()-c400(35),h()-c400(35),c400(20),white);
-        canvas.drawText(menu.equals("started") ? "?" : "×",
+        canvas.drawText(menu.equals("help") ? "×" : "?",
                 w()-c400(35),h()-c400(35)-(qMark.ascent()+qMark.descent())/2,qMark);
     }
 
