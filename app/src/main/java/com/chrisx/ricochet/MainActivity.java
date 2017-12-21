@@ -356,7 +356,7 @@ public class MainActivity extends AppCompatActivity {
         spaced.setColor(Color.argb(50,0,0,0));
         spaced.setTextSize((float)size);
 
-        String o = new String();
+        String o = "";
         for (int i = 0; i < s.length(); i++) {
             o += s.charAt(i);
             o += " ";
